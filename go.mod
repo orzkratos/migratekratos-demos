@@ -7,7 +7,7 @@ require (
 	github.com/orzkratos/demokratos/demo2kratos v0.0.10
 	github.com/stretchr/testify v1.11.1
 	github.com/yyle88/eroticgo v0.0.5
-	github.com/yyle88/osexec v0.0.32
+	github.com/yyle88/osexec v0.0.33
 	github.com/yyle88/osexistpath v0.0.18
 	github.com/yyle88/printgo v1.0.6
 	github.com/yyle88/runpath v1.0.24
@@ -20,7 +20,7 @@ require (
 	github.com/yyle88/done v1.0.27 // indirect
 	github.com/yyle88/erero v1.0.24 // indirect
 	github.com/yyle88/must v0.0.26 // indirect
-	github.com/yyle88/mutexmap v1.0.14 // indirect
+	github.com/yyle88/mutexmap v1.0.15 // indirect
 	github.com/yyle88/rese v0.0.11 // indirect
 	github.com/yyle88/sure v0.0.40 // indirect
 	github.com/yyle88/syntaxgo v0.0.54 // indirect
@@ -28,5 +28,6 @@ require (
 	github.com/yyle88/zaplog v0.0.27 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
+	golang.org/x/mod v0.29.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

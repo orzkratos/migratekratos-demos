@@ -5,10 +5,11 @@ server:
   grpc:
     addr: 0.0.0.0:29000
     timeout: 1s
+  auto_run: true
 data:
   database:
-    driver: mysql
-    source: root:root@tcp(127.0.0.1:3306)/test?parseTime=True&loc=Local
+    driver: sqlite
+    source: ./bin/demo2kratos.db
   redis:
     addr: 127.0.0.1:6379
     read_timeout: 0.2s
