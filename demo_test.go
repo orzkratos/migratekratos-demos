@@ -1,31 +1,56 @@
+// Package demokratos_test provides tests to compare code differences between fork projects and source project
+// Contains test functions to show, compare, and generate difference reports
+// Helps sync fork projects with upstream demokratos changes
+//
+// demokratos_test 提供测试函数，用于比较 fork 项目与源项目的代码差异
+// 包含显示、比较和生成差异报告的测试函数
+// 在同步 fork 项目与上游 demokratos 变更时非常有用
 package demokratos_test
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/orzkratos/demokratos"
 	"github.com/stretchr/testify/require"
 	"github.com/yyle88/eroticgo"
+	"github.com/yyle88/must"
 	"github.com/yyle88/osexec"
+	"github.com/yyle88/osexec/osexectest"
 	"github.com/yyle88/osexistpath/osmustexist"
 	"github.com/yyle88/printgo"
+	"github.com/yyle88/rese"
 	"github.com/yyle88/runpath"
 )
 
-// GetDemo1Path 获取本地测试环境中的 demo1kratos 目录路径。用于与 demokratos 包中的路径进行比较，验证 fork 项目与源项目的差异
+// GetDemo1Path returns demo1kratos path in current test environment
+// Used to compare with demokratos package path, verifying differences between fork and source projects
+//
+// GetDemo1Path 返回本地测试环境中的 demo1kratos 目录路径
+// 用于与 demokratos 包中的路径进行比较，验证 fork 项目与源项目的差异
 func GetDemo1Path() string {
 	return runpath.PARENT.Join("demo1kratos")
 }
 
-// GetDemo2Path 获取本地测试环境中的 demo2kratos 目录路径。用于与 demokratos 包中的路径进行比较，验证 fork 项目与源项目的差异
+// GetDemo2Path returns demo2kratos path in current test environment
+// Used to compare with demokratos package path, verifying differences between fork and source projects
+//
+// GetDemo2Path 返回本地测试环境中的 demo2kratos 目录路径
+// 用于与 demokratos 包中的路径进行比较，验证 fork 项目与源项目的差异
 func GetDemo2Path() string {
 	return runpath.PARENT.Join("demo2kratos")
 }
 
+// TestShow1Changes compares demo1kratos differences between source and current project
+// Usage:
+// - Run this test in fork project to see complete code changes compared to source demokratos
+// - Command: go test -v -run TestShow1Changes
+// - Shows specific file and code change details if differences exist
+//
 // TestShow1Changes 比较 demo1kratos 项目在源项目和当前项目中的差异
 // 使用场景：
 // - 在 fork 项目中运行此测试，可以看到相对于源项目 demokratos 的所有代码变更
@@ -37,6 +62,12 @@ func TestShow1Changes(t *testing.T) {
 	comparePath(t, path0, path1)
 }
 
+// TestShow2Changes compares demo2kratos differences between source and current project
+// Usage:
+// - Run this test in fork project to see complete code changes compared to source demokratos
+// - Command: go test -v -run TestShow2Changes
+// - Shows specific file and code change details if differences exist
+//
 // TestShow2Changes 比较 demo2kratos 项目在源项目和当前项目中的差异
 // 使用场景：
 // - 在 fork 项目中运行此测试，可以看到相对于源项目 demokratos 的所有代码变更
@@ -48,6 +79,15 @@ func TestShow2Changes(t *testing.T) {
 	comparePath(t, path0, path2)
 }
 
+// comparePath uses diff command to compare two paths and output results
+// Params:
+// - path0: source path (often from demokratos package)
+// - path1: target path (often from current project)
+// Features:
+// - Ignores go.mod and go.sum differences (since deps versions can be distinct)
+// - Shows green "SAME" message if no differences
+// - Shows yellow-ish hints and specific diff content if differences exist
+//
 // comparePath 使用 diff 命令比较两个路径的差异并输出结果
 // 参数：
 // - path0: 源路径（通常是 demokratos 包中的路径）
@@ -79,6 +119,12 @@ func comparePath(t *testing.T, path0 string, path1 string) {
 	}
 }
 
+// TestCompare1Modules compares go.mod file differences in demo1kratos project
+// Usage:
+// - Check if demo1kratos deps versions are distinct from source project
+// - Command: go test -v -run TestCompare1Modules
+// - Often used to check deps upgrades and version sync status
+//
 // TestCompare1Modules 专门比较 demo1kratos 项目的 go.mod 文件差异
 // 使用场景：
 // - 查看 demo1kratos 的依赖版本是否与源项目有差异
@@ -90,6 +136,12 @@ func TestCompare1Modules(t *testing.T) {
 	comparePath(t, path0, path1)
 }
 
+// TestCompare2Modules compares go.mod file differences in demo2kratos project
+// Usage:
+// - Check if demo2kratos deps versions are distinct from source project
+// - Command: go test -v -run TestCompare2Modules
+// - Often used to check deps upgrades and version sync status
+//
 // TestCompare2Modules 专门比较 demo2kratos 项目的 go.mod 文件差异
 // 使用场景：
 // - 查看 demo2kratos 的依赖版本是否与源项目有差异
@@ -101,6 +153,12 @@ func TestCompare2Modules(t *testing.T) {
 	comparePath(t, path0, path2)
 }
 
+// TestShow1ReadableDiff shows readable code differences of Demo1 project
+// Usage:
+// - Run this test in fork project to see complete Demo1 code changes compared to source demokratos
+// - Command: go test -v -run TestShow1ReadableDiff
+// - Shows colorized formatted file and code change content, readable at a glance
+//
 // TestShow1ReadableDiff 显示 Demo1 项目的易读代码差异
 // 使用场景：
 // - 在 fork 项目中运行此测试，可以看到相对于源项目 demokratos 的 Demo1 所有代码变更
@@ -113,6 +171,12 @@ func TestShow1ReadableDiff(t *testing.T) {
 	showReadableDiff(t, path0, path1)
 }
 
+// TestShow2ReadableDiff shows readable code differences of Demo2 project
+// Usage:
+// - Run this test in fork project to see complete Demo2 code changes compared to source demokratos
+// - Command: go test -v -run TestShow2ReadableDiff
+// - Shows colorized formatted file and code change content, readable at a glance
+//
 // TestShow2ReadableDiff 显示 Demo2 项目的易读代码差异
 // 使用场景：
 // - 在 fork 项目中运行此测试，可以看到相对于源项目 demokratos 的 Demo2 所有代码变更
@@ -125,6 +189,17 @@ func TestShow2ReadableDiff(t *testing.T) {
 	showReadableDiff(t, path0, path1)
 }
 
+// showReadableDiff shows formatted readable diff results
+// Params:
+// - path0: source path (often from demokratos package)
+// - path1: target path (often from current project)
+// Features:
+// - Ignores go.mod and go.sum differences (since deps versions can be distinct)
+// - Shows green "No changes" message if no differences
+// - Shows colorized formatted code change content if differences exist
+// - Red indicates deleted lines, green indicates added lines
+// - Each file shows stats: filename (+added_lines -deleted_lines)
+//
 // showReadableDiff 显示格式化的易读 diff 结果
 // 参数：
 // - path0: 源路径（通常是 demokratos 包中的路径）
@@ -199,6 +274,12 @@ func showReadableDiff(t *testing.T, path0, path1 string) {
 	printFile() // 输出最后一个文件
 }
 
+// TestGenerate1Changes generates code difference file of Demo1 project
+// Usage:
+// - Run this test in fork project to generate changes/demo1.md file
+// - Command: go test -v -run TestGenerate1Changes
+// - File content uses markdown format, viewable on GitHub
+//
 // TestGenerate1Changes 生成 Demo1 项目的代码差异文件
 // 使用场景：
 // - 在 fork 项目中运行此测试，生成 changes/demo1.md 文件
@@ -216,6 +297,12 @@ func TestGenerate1Changes(t *testing.T) {
 	generateChangesFile(t, path0, path1, outputPath)
 }
 
+// TestGenerate2Changes generates code difference file of Demo2 project
+// Usage:
+// - Run this test in fork project to generate changes/demo2.md file
+// - Command: go test -v -run TestGenerate2Changes
+// - File content uses markdown format, viewable on GitHub
+//
 // TestGenerate2Changes 生成 Demo2 项目的代码差异文件
 // 使用场景：
 // - 在 fork 项目中运行此测试，生成 changes/demo2.md 文件
@@ -233,11 +320,21 @@ func TestGenerate2Changes(t *testing.T) {
 	generateChangesFile(t, path0, path1, outputPath)
 }
 
+// generateChangesFile generates markdown file of code differences
+// Params:
+// - path0: source path (often from demokratos package)
+// - path1: target path (often from current project)
+// - outputPath: output file path (e.g. changes/demo1.md)
+// Features:
+// - Ignores go.mod and go.sum differences
+// - Generates markdown formatted difference file
+// - Generates file with "No changes" if no differences
+//
 // generateChangesFile 生成代码差异的 markdown 文件
 // 参数：
 // - path0: 源路径（通常是 demokratos 包中的路径）
 // - path1: 目标路径（通常是当前项目中的路径）
-// - outputFile: 输出文件路径（如 changes/demo1.md）
+// - outputPath: 输出文件路径（如 changes/demo1.md）
 // 功能：
 // - 忽略 go.mod 和 go.sum 文件的差异
 // - 生成 markdown 格式的差异文件
@@ -257,7 +354,7 @@ func generateChangesFile(t *testing.T, path0, path1, outputPath string) {
 	require.NoError(t, err)
 
 	if len(output) == 0 {
-		// Write empty result to file
+		// Write blank result to file
 		// 写入空结果到文件
 		content := "# Changes\n\n✅ NO CHANGES\n"
 		err := os.WriteFile(outputPath, []byte(content), 0644)
@@ -307,8 +404,8 @@ func generateChangesFile(t *testing.T, path0, path1, outputPath string) {
 			}
 
 		case strings.HasPrefix(line, "@@"):
-			// Chunk header, include it for context
-			// Chunk 头，包含它作为上下文
+			// Chunk heading, include it as context
+			// Chunk 头部，包含作为上下文
 			diffLines = append(diffLines, line)
 
 		case strings.HasPrefix(line, "+") && !strings.HasPrefix(line, "+++"):
@@ -332,4 +429,105 @@ func generateChangesFile(t *testing.T, path0, path1, outputPath string) {
 	// 写入文件
 	require.NoError(t, os.WriteFile(outputPath, ptx.Bytes(), 0644))
 	t.Logf("Generated %s with differences", outputPath)
+}
+
+// TestGenerateXChanges generates tree structure of sibling projects
+// Lists DIRs except demo1kratos, demo2kratos and known ones
+// Outputs tree info to changes/demos-toolchain-trees.md
+//
+// TestGenerateXChanges 生成兄弟项目的目录树结构
+// 列出除了 demo1kratos、demo2kratos 和已知目录之外的所有目录
+// 将目录树信息输出到 changes/demos-toolchain-trees.md
+func TestGenerateXChanges(t *testing.T) {
+	osexectest.SkipIfCommandNotFound(t, "tree")
+
+	root := runpath.PARENT.Path()
+	t.Log(root)
+
+	excludeSomeNames := []string{
+		".git", // Can be omitted since hidden DIRs are skipped below // 这里可以省略，因为下面会跳过隐藏 DIR
+		"changes",
+		filepath.Base(GetDemo1Path()),
+		filepath.Base(GetDemo2Path()),
+	}
+	t.Log("exclude:", excludeSomeNames)
+
+	// List DIRs except known ones
+	// 列举目录，排除已知的目录
+	var matchNames []string
+	for _, item := range rese.A1(os.ReadDir(root)) {
+		if item.IsDir() {
+			name := item.Name()
+			t.Log("check:", name)
+			if strings.HasPrefix(name, ".") {
+				continue
+			}
+			if slices.Contains(excludeSomeNames, name) {
+				continue
+			}
+			t.Log("match:", name)
+			matchNames = append(matchNames, name)
+		}
+	}
+	t.Log("match:", matchNames)
+
+	//把其它目录的 tree 信息输出出来到文本里
+	outputPath := osmustexist.FILE(filepath.Join(root, "changes", "demos-toolchain-trees.md"))
+	t.Log(outputPath)
+
+	if len(matchNames) == 0 {
+		content := "# Changes\n\n✅ NO CHANGES\n"
+		must.Done(os.WriteFile(outputPath, []byte(content), 0644))
+		return
+	}
+
+	ptx := printgo.NewPTX()
+	ptx.Println("# Changes")
+	ptx.Println()
+
+	// Overview section with sibling projects list
+	// 概览章节，列出兄弟项目
+	ptx.Println("## Overview")
+	ptx.Println()
+	ptx.Println("Sibling projects:")
+	ptx.Println()
+	for _, name := range matchNames {
+		ptx.Fprintf("- [%s](#%s)", name, name)
+		ptx.Println()
+	}
+	ptx.Println()
+
+	// Detailed tree structure for each project
+	// 每个项目的详细目录树结构
+	ptx.Println("## Project Structures")
+	ptx.Println()
+	for idx, name := range matchNames {
+		if idx > 0 {
+			ptx.Println("---")
+			ptx.Println()
+		}
+
+		ptx.Fprintf("### %s", name)
+		ptx.Println()
+		ptx.Println()
+		ptx.Fprintf("**Location**: [%s](../%s)", name, name)
+		ptx.Println()
+		ptx.Println()
+		ptx.Println("```bash")
+		ptx.Fprintf("cd %s && tree --noreport", name)
+		ptx.Println()
+		ptx.Println("```")
+		ptx.Println()
+
+		subRoot := filepath.Join(root, name)
+		t.Log(subRoot)
+		treeOutput := rese.A1(osexec.ExecInPath(subRoot, "tree", "--noreport", "--charset=ascii", "--gitignore", "-I", "node_modules|.git|bin|.idea|.vscode"))
+		t.Log(string(treeOutput))
+
+		ptx.Println("```")
+		ptx.Write(treeOutput)
+		ptx.Println("```")
+		ptx.Println()
+	}
+	must.Done(os.WriteFile(outputPath, ptx.Bytes(), 0644))
 }

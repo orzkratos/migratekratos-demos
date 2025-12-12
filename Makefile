@@ -1,26 +1,64 @@
 # ========================================
+# Start Kratos Dev Adventure
 # 开始你的 Kratos 开发之旅吧
 # ========================================
 
+# These dev tools make Kratos projects a breeze! Run make init to set up
 # 这些是我专为 Kratos 项目打造的效率工具，让开发变得更轻松愉快！请运行 make init 安装
 init:
 	@echo "正在安装 Kratos 相关的开发工具链..."
+	# orzkratos-add-proto: No more tedious proto file creation!
+	# Usage: Run orzkratos-add-proto demo.proto in api/helloworld/ DIR
+	#
 	# orzkratos-add-proto: 告别繁琐的 proto 文件手动创建！
 	# 使用方法: 在 api/helloworld/ 目录下运行 orzkratos-add-proto demo.proto
 	go install github.com/orzkratos/orzkratos/cmd/orzkratos-add-proto@latest
+
+	# orzkratos-srv-proto: Auto sync magic, keeps service implementations aligned with proto definitions
+	# IMPORTANT: Backup code (commit to git) first, since it modifies source files
+	#
 	# orzkratos-srv-proto: 自动同步神器，让你的服务实现与 proto 接口始终保持一致
 	# 重要提醒: 使用前请务必备份代码或提交到 git，因为会直接修改源文件
 	go install github.com/orzkratos/orzkratos/cmd/orzkratos-srv-proto@latest
+
+	# wirekratos: Enhanced Wire DI, supports Kratos workspace mode and framework markers
+	# wirekratos: Wire 依赖注入增强工具，支持 Kratos 工作区模式和框架标识
+	go install github.com/orzkratos/wirekratos/cmd/wirekratos@latest
+
+	# depbump: One-click deps upgrade, no more version headaches
 	# depbump: 一键升级所有依赖包，告别版本管理烦恼
 	go install github.com/go-mate/depbump/cmd/depbump@latest
+
+	# go-lint: Code guardian, auto format + static checks
 	# go-lint: 代码质量守护者，自动格式化 + 静态检查
 	go install github.com/go-mate/go-lint/cmd/go-lint@latest
+
+	# tago: Smart Git tag management, supports semantic version auto-increment
+	# tago: 智能 Git tag 版本管理工具，支持语义化版本自动递增
+	go install github.com/go-mate/tago/cmd/tago@latest
+
+	# go-commit: Git commit automation with Go code formatting
+	# go-commit: Git 提交自动化工具，附带 Go 代码格式化功能
+	go install github.com/go-mate/go-commit/cmd/go-commit@latest
+
+	# clang-format-batch: Batch format proto, cpp and more languages
 	# clang-format-batch: 批量格式化 proto 和 cpp 等多种语言代码
 	go install github.com/go-xlan/clang-format/cmd/clang-format-batch@latest
+
+	# protoc-gen-orzkratos-errors: Auto generate Go code from proto definitions, provides enum codes and nested functions
 	# protoc-gen-orzkratos-errors: proto 错误定义自动生成 Go 代码，提供错误码枚举和错误嵌套功能
 	go install github.com/orzkratos/errgenkratos/cmd/protoc-gen-orzkratos-errors@latest
 	@echo "✅ 工具安装完成！现在可以开始愉快地开发啦"
 
+# Format code in projects via command line
+# 使用命令行整理项目中的代码
+fmt:
+	@echo "开始整理所有演示项目的代码..."
+	cd demo1kratos && clang-format-batch --extensions=proto
+	cd demo2kratos && clang-format-batch --extensions=proto
+	@echo "✅ 所有项目的代码整理完成！"
+
+# Build demo projects, includes proto generation, config processing, code generation, etc.
 # 构建所有演示项目，包括 proto 生成、配置文件处理、代码生成等
 all:
 	@echo "开始构建所有演示项目..."
@@ -29,16 +67,26 @@ all:
 	@echo "✅ 所有项目构建完成！"
 
 # ========================================
+# Magic Command make orz - Auto Sync Proto Code with Service
 # 魔法命令 make orz - 自动同步 Proto 代码与服务
 # ========================================
+# This is the most amazing feature! When you change proto files, run this command:
+# Add interface → Auto add function implementation in service (adds stub, you implement the logic)
+# Delete interface → Auto convert service method to unexported (avoids compile bugs)
+# Sort functions → Sort service implementations based on proto definition sequence
+# Usage:
+#   1. Add CreateProduct interface in proto file
+#   2. Run make orz
+#   3. Service auto generates CreateProduct method stub, just add business logic!
+#
 # 这是最强大的功能！当你修改 proto 文件后，运行这个命令：
 # 新增接口 → 自动在服务层添加对应的函数实现（新增个空函数，需要您实现函数内部逻辑）
 # 删除接口 → 自动将服务代码中对应的方法改为非导出的（避免编译错误）
 # 函数排序 → 根据你 proto 里定义的函数顺序重新排列服务里的实现代码
 # 使用场景举例:
-#   1. 在 proto 文件中新增了 CreateUser 接口
+#   1. 在 proto 文件中新增了 CreateProduct 接口
 #   2. 运行 make orz
-#   3. 服务层自动生成 CreateUser 方法框架，你只需要填充业务逻辑！
+#   3. 服务层自动生成 CreateProduct 方法框架，你只需要填充业务逻辑！
 orz:
 	@echo "开始执行 Proto-Service 自动同步函数..."
 	cd demo1kratos && make all && orzkratos-srv-proto -auto
@@ -47,34 +95,58 @@ orz:
 
 # ========================================
 # TEMPLATE BEGIN: TEST AND COVERAGE CONFIG
+# 模板开始: 测试和覆盖率配置
 # ========================================
 # Test and Coverage (GitHub Actions)
+# 测试和覆盖率（GitHub Actions 自动执行）
 # ========================================
 
+# Coverage output DIR
+# 覆盖率输出目录
 COVERAGE_DIR ?= .coverage.out
 
-# cp from: https://github.com/yyle88/gormrepo/blob/c31435669714611c9ebde6975060f48cd5634451/Makefile#L4
+# Reference: https://github.com/yyle88/gormrepo/blob/c31435669714611c9ebde6975060f48cd5634451/Makefile#L4
 test:
 	@if [ -d $(COVERAGE_DIR) ]; then rm -r $(COVERAGE_DIR); fi
 	@mkdir $(COVERAGE_DIR)
 	make test-with-flags TEST_FLAGS='-v -race -covermode atomic -coverprofile $$(COVERAGE_DIR)/combined.txt -bench=. -benchmem -timeout 20m'
 
+# Run tests with custom flags
+# 使用自定义参数运行测试
 test-with-flags:
 	@go test $(TEST_FLAGS) ./...
 
 # ========================================
 # TEMPLATE END: TEST AND COVERAGE CONFIG
+# 模板结束: 测试和覆盖率配置
 # ========================================
 
 # ========================================
+# Sync Upstream Repo Changes to Fork Project - Complete Workflow
 # 同步上游仓库最新修改到 fork 项目的完整流程
 # ========================================
+# Background:
+# 1. These projects are forked from demokratos, each demonstrates a specific usage technique to guide newcomers
+# 2. In new fork projects, we also include test functions that compare code with the source demokratos project
+# 3. When the source demokratos project is modified (including updated Kratos framework), you can sync changes in the fork project
+# 4. These fork projects won't be merged back to demokratos, existing as standalone examples
+# 5. The project provides source code sync logic, which can JUST be executed in fork projects
+#
 # 背景说明：
 # 1. 这些项目都是由 demokratos fork 来的，而每个fork都会展示一种特殊的使用技巧，这样方便新手查看具体如何使用。
 # 2. 在新 fork 项目里，还贴心的提供了和源项目 demokratos 代码的比较的测试函数
 # 3. 当源项目 demokratos 修改了东西，或者使用了更新的 kratos 框架版本时，还可以在 fork 项目里同步修改。
 # 4. 因此，这些 fork 的项目，基本都不会再合并到 demokratos 里，而是作为单独的样例长期存在。
 # 5. 项目提供了同步源代码修改的逻辑，这个逻辑只能在 fork 项目里执行。
+#
+# Usage:
+# 1. First check workspace status with git status, handle uncommitted changes:
+#    - Just go.mod/go.sum changes: git stash (deps upgrade can be done next)
+#    - Business code changes: commit first, avoid mixed commit records
+# 2. Execute merge-step1 through merge-step12 in sequence to complete the sync
+# 3. Resolve conflicts on own (common in go.mod/go.sum files)
+# 4. If one step stops and code/deps need modification, re-run tests and lint to avoid introducing new bugs
+#
 # 使用说明：
 # 1. 首先检查工作区状态 git status，如有未提交的修改需要处理：
 #    - 仅包含 go.mod/go.sum 的变化：git stash (依赖升级可稍后再合)
@@ -83,7 +155,13 @@ test-with-flags:
 # 3. 如果有冲突，自行解决 (常见于 go.mod/go.sum 文件)
 # 4. 若任何步骤出现错误需要再次修改代码/依赖时，改完都要再次运行测试和代码静态检查，避免引入新问题
 
+# Step 1: Add upstream repo as remote source, handles duplicate add scenario
+# 第1步: 添加上游仓库为远程源，智能处理重复添加的情况
 merge-step1:
+	# Add upstream repo as remote source, smart handling of duplicate add scenario
+	# Note: If upstream remote exists and points to same repo, ignore duplicate, but if it points to a different repo, abort and stop
+	# Check if current project is the source project itself
+	#
 	# 添加上游仓库为远程源，智能处理重复添加的情况
 	# 注意: 如果 upstream 远程源已存在，而且是同名仓库，就忽略重复的错误，因为这不是问题，但是假如指向其他仓库，就报错，而且不往下执行
 	# 检查当前是否是源项目本身
@@ -92,6 +170,8 @@ merge-step1:
 		echo "⚠️  当前是源项目，该操作仅适用于 fork 项目"; \
 		exit 1; \
 	fi
+
+	# Execute upstream repo add logic
 	# 执行上游仓库添加逻辑
 	@EXPECTED_REPO="git@github.com:orzkratos/demokratos.git"; \
 	if git remote get-url upstream >/dev/null 2>&1; then \
@@ -112,21 +192,32 @@ merge-step1:
 		echo "✅ 已添加上游仓库远程源"; \
 	fi
 
+# Step 2: Fetch upstream code without tags to avoid conflicts
+# 第2步: 获取上游仓库的最新代码，不获取标签以避免冲突
 merge-step2:
+	# Fetch upstream code without tags to avoid conflicts
 	# 获取上游仓库的最新代码，不获取标签以避免冲突
 	git fetch --no-tags upstream main
 	@echo "✅ 已获取上游仓库最新代码"
+	# If you happened to sync source project tags, you can re-sync fork tags from remote
 	# 假如你不小心已经同步源项目的标签，还可以这样让从远程完全同步子项目的标签
 	# git fetch origin --tags --prune --prune-tags
 
+# Step 3: Switch to main branch
+# 第3步: 确保当前在 main 分支里
 merge-step3:
+	# Ensure on main branch
 	# 确保当前在 main 分支里
 	git checkout main
 	@echo "✅ 已切换到 main 分支里"
 
+# Step 4: Stash uncommitted changes if needed
+# 第4步: 检查并暂存未提交的代码
 merge-step4:
+	# Check if there are uncommitted changes, stash them if needed
 	# 检查当前是否有未提交的代码，如果有变动则暂存起来
 	git status
+	# If there are uncommitted changes, stash them (auto-detects changes)
 	# 如果有未提交的变动，暂存到 stash（会自动检查是否有变动）
 	git diff --quiet || git stash push -m "临时保存：merge 前的未提交变动"
 	git status
@@ -175,13 +266,20 @@ merge-step6:
 merge-step7:
 	# 升级所有项目的依赖包到最新版本
 	# depbump: 完整升级根目录依赖
-	# depbump directs: 依次升级子项目的直接依赖（优先使用 depbump，出错时才用 depbump directs）
-	depbump || depbump directs
+	# depbump update -D: 升级直接依赖（-D 是默认的，优先用 depbump，出错时才用 depbump update -D）
+	depbump || depbump update -D
 	# 在项目根目录里进第1个项目，优先尝试完整升级，失败则使用仅直接依赖升级
-	cd demo1kratos && (depbump || depbump directs)
+	cd demo1kratos && (depbump || depbump update -D)
 	# 在项目根目录里进第2个项目，优先尝试完整升级，失败则使用仅直接依赖升级
-	cd demo2kratos && (depbump || depbump directs)
+	cd demo2kratos && (depbump || depbump update -D)
 	@echo "✅ 已升级所有依赖包"
+	# 【备注】标准升级命令（使用 go get -u）：
+	# depbump module: 使用 go get -u ./... 升级当前模块依赖
+	# depbump module -R: 在工作区所有模块中使用 go get -u ./... 升级依赖
+	# 【备注】智能升级命令（带 Go 版本兼容性检查，防止工具链传染）：
+	# depbump bump: 智能升级直接依赖（等同于 depbump bump -D）
+	# depbump bump -E: 智能升级所有依赖（直接+间接）
+	# depbump bump -ER: 在工作区所有模块中智能升级所有依赖
 
 merge-step8:
 	# 检查是否有依赖升级的变动，如果有则单独提交
