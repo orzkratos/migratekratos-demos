@@ -2,8 +2,10 @@ package data
 
 import (
 	"github.com/go-kratos/kratos/v2/log"
+	"github.com/go-xlan/go-migrate/checkmigration"
 	"github.com/google/wire"
 	"github.com/orzkratos/demokratos/demo2kratos/internal/conf"
+	"github.com/orzkratos/demokratos/demo2kratos/internal/pkg/models"
 	"github.com/yyle88/must"
 	"github.com/yyle88/rese"
 	"gorm.io/driver/sqlite"
@@ -25,6 +27,10 @@ func NewData(c *conf.Data, logger log.Logger) (*Data, func(), error) {
 	db := rese.P1(gorm.Open(sqlite.Open(dsn), &gorm.Config{
 		Logger: loggergorm.Default.LogMode(loggergorm.Info),
 	}))
+
+	// Check if migration scripts are missing
+	// 检查是否缺少迁移脚本
+	checkmigration.CheckMigrate(db, models.Objects())
 
 	cleanup := func() {
 		log.NewHelper(logger).Info("closing the data resources")

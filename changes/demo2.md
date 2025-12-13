@@ -111,15 +111,17 @@ Code differences compared to source project demokratos.
  
 ```
 
-## cmd/demo2kratos/subcmds/sub_cmds.go (+108 -0)
+## cmd/demo2kratos/subcmds/sub_cmds.go (+112 -0)
 
 ```diff
-@@ -0,0 +1,108 @@
+@@ -0,0 +1,112 @@
 +package subcmds
 +
 +import (
 +	"github.com/go-kratos/kratos/v2/log"
 +	"github.com/go-xlan/go-migrate/cobramigration"
++	"github.com/go-xlan/go-migrate/migrationparam"
++	"github.com/go-xlan/go-migrate/migrationstate"
 +	"github.com/go-xlan/go-migrate/newmigrate"
 +	"github.com/go-xlan/go-migrate/newscripts"
 +	"github.com/go-xlan/go-migrate/previewmigrate"
@@ -156,14 +158,14 @@ Code differences compared to source project demokratos.
 +//
 +// Create migration scripts:
 +// 创建迁移脚本:
-+// ./bin/demo2kratos migrate next-script create --version-type TIME --description create_table
-+// ./bin/demo2kratos migrate next-script create --version-type TIME --description alter_schema
-+// ./bin/demo2kratos migrate next-script create --version-type TIME --description alter_schema --allow-empty-script true
-+// ./bin/demo2kratos migrate next-script create --version-type TIME --description alter_column
++// ./bin/demo2kratos migrate new-script create --version-type TIME --description create_table
++// ./bin/demo2kratos migrate new-script create --version-type TIME --description alter_schema
++// ./bin/demo2kratos migrate new-script create --version-type TIME --description alter_schema --allow-empty-script true
++// ./bin/demo2kratos migrate new-script create --version-type TIME --description alter_column
 +//
 +// Update migration scripts:
 +// 更新迁移脚本:
-+// ./bin/demo2kratos migrate next-script update
++// ./bin/demo2kratos migrate new-script update
 +//
 +// Execute migrations:
 +// 执行迁移:
@@ -174,52 +176,54 @@ Code differences compared to source project demokratos.
 +// 预览迁移:
 +// ./bin/demo2kratos migrate preview inc
 +//
++// Check migration status:
++// 检查迁移状态:
++// ./bin/demo2kratos migrate status
++//
 +// Note: Use caution with rollback operations to avoid unintended destructive actions
 +// 注意: 回退操作要谨慎，避免误操作导致问题
 +// ./bin/demo2kratos migrate migrate dec (use with caution)
 +func NewMigrateCmd(logger log.Logger) *cobra.Command {
-+	const scriptsInRoot = "./scripts"
-+
-+	// Lazy initialization: database connection created when command runs
-+	// 延迟初始化：仅在命令运行时才创建数据库连接
-+	getDB := func() *gorm.DB {
-+		cfg := appcfg.ParseConfig(cfgpath.ConfigPath)
-+		dsn := must.Nice(cfg.Data.Database.Source)
-+		db := rese.P1(gorm.Open(sqlite.Open(dsn), &gorm.Config{}))
-+		return db
-+	}
-+
-+	// getMigration function accepts database connection to share single connection
-+	// 迁移工厂接受数据库连接以共享单个连接
-+	getMigration := func(db *gorm.DB) *migrate.Migrate {
-+		sqlDB := rese.P1(db.DB())
-+		migrationDriver := rese.V1(sqlite3migrate.WithInstance(sqlDB, &sqlite3migrate.Config{}))
-+		return rese.P1(newmigrate.NewWithScriptsAndDatabase(
-+			&newmigrate.ScriptsAndDatabaseParam{
-+				ScriptsInRoot:    scriptsInRoot,
-+				DatabaseName:     "sqlite3",
-+				DatabaseInstance: migrationDriver,
-+			},
-+		))
-+	}
-+
 +	var rootCmd = &cobra.Command{
 +		Use:   "migrate",
 +		Short: "migrate",
 +		Long:  "migrate",
 +	}
-+	rootCmd.AddCommand(newscripts.NextScriptCmd(&newscripts.Config{
-+		GetMigration: getMigration,
-+		GetDB:        getDB,
-+		Options:      newscripts.NewOptions(scriptsInRoot),
-+		Objects: []any{
-+			&models.Record{},
-+			&models.Article{},
-+			&models.Product{},
++
++	const scriptsInRoot = "./scripts"
++
++	migrationparam.SetDebugMode(true)
++	param := migrationparam.NewMigrationParam(
++		func() *gorm.DB {
++			cfg := appcfg.ParseConfig(cfgpath.ConfigPath)
++			dsn := must.Nice(cfg.Data.Database.Source)
++			db := rese.P1(gorm.Open(sqlite.Open(dsn), &gorm.Config{}))
++			return db
 +		},
++		func(db *gorm.DB) *migrate.Migrate {
++			rawDB := rese.P1(db.DB())
++			migrationDriver := rese.V1(sqlite3migrate.WithInstance(rawDB, &sqlite3migrate.Config{}))
++			return rese.P1(newmigrate.NewWithScriptsAndDatabase(
++				&newmigrate.ScriptsAndDatabaseParam{
++					ScriptsInRoot:    scriptsInRoot,
++					DatabaseName:     "sqlite3",
++					DatabaseInstance: migrationDriver,
++				},
++			))
++		},
++	)
++	rootCmd.AddCommand(newscripts.NewScriptCmd(&newscripts.Config{
++		Param:   param,
++		Options: newscripts.NewOptions(scriptsInRoot),
++		Objects: models.Objects(),
 +	}))
-+	rootCmd.AddCommand(cobramigration.NewMigrateCmd(getDB, getMigration))
-+	rootCmd.AddCommand(previewmigrate.NewPreviewCmd(getDB, getMigration, scriptsInRoot))
++	rootCmd.AddCommand(cobramigration.NewMigrateCmd(param))
++	rootCmd.AddCommand(previewmigrate.NewPreviewCmd(param, scriptsInRoot))
++	rootCmd.AddCommand(migrationstate.NewStatusCmd(&migrationstate.Config{
++		Param:       param,
++		ScriptsPath: scriptsInRoot,
++		Objects:     models.Objects(),
++	}))
 +
 +	return rootCmd
 +}
@@ -298,13 +302,17 @@ Code differences compared to source project demokratos.
  message Data {
 ```
 
-## internal/data/data.go (+21 -2)
+## internal/data/data.go (+27 -2)
 
 ```diff
-@@ -4,6 +4,11 @@
+@@ -2,8 +2,15 @@
+ 
+ import (
  	"github.com/go-kratos/kratos/v2/log"
++	"github.com/go-xlan/go-migrate/checkmigration"
  	"github.com/google/wire"
  	"github.com/orzkratos/demokratos/demo2kratos/internal/conf"
++	"github.com/orzkratos/demokratos/demo2kratos/internal/pkg/models"
 +	"github.com/yyle88/must"
 +	"github.com/yyle88/rese"
 +	"gorm.io/driver/sqlite"
@@ -313,7 +321,7 @@ Code differences compared to source project demokratos.
  )
  
  // ProviderSet is data providers.
-@@ -11,13 +16,27 @@
+@@ -11,13 +18,31 @@
  
  // Data .
  type Data struct {
@@ -327,6 +335,10 @@ Code differences compared to source project demokratos.
 +	db := rese.P1(gorm.Open(sqlite.Open(dsn), &gorm.Config{
 +		Logger: loggergorm.Default.LogMode(loggergorm.Info),
 +	}))
++
++	// Check if migration scripts are missing
++	// 检查是否缺少迁移脚本
++	checkmigration.CheckMigrate(db, models.Objects())
 +
  	cleanup := func() {
  		log.NewHelper(logger).Info("closing the data resources")
@@ -465,6 +477,23 @@ Code differences compared to source project demokratos.
 +// 返回表名
 +func (*Article) TableName() string {
 +	return "articles"
++}
+```
+
+## internal/pkg/models/objects.go (+11 -0)
+
+```diff
+@@ -0,0 +1,11 @@
++package models
++
++// Objects returns all GORM model objects for migration
++// 返回所有用于迁移的 GORM 模型对象
++func Objects() []any {
++	return []any{
++		&Record{},
++		&Article{},
++		&Product{},
++	}
 +}
 ```
 

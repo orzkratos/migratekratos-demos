@@ -3,6 +3,8 @@ package subcmds
 import (
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-xlan/go-migrate/cobramigration"
+	"github.com/go-xlan/go-migrate/migrationparam"
+	"github.com/go-xlan/go-migrate/migrationstate"
 	"github.com/go-xlan/go-migrate/newmigrate"
 	"github.com/go-xlan/go-migrate/newscripts"
 	"github.com/go-xlan/go-migrate/previewmigrate"
@@ -39,14 +41,14 @@ func NewVersionCmd(serviceName, version string, logger log.Logger) *cobra.Comman
 //
 // Create migration scripts:
 // 创建迁移脚本:
-// ./bin/demo1kratos migrate next-script create --version-type TIME --description create_table
-// ./bin/demo1kratos migrate next-script create --version-type TIME --description alter_schema
-// ./bin/demo1kratos migrate next-script create --version-type TIME --description alter_schema --allow-empty-script true
-// ./bin/demo1kratos migrate next-script create --version-type TIME --description alter_column
+// ./bin/demo1kratos migrate new-script create --version-type TIME --description create_table
+// ./bin/demo1kratos migrate new-script create --version-type TIME --description alter_schema
+// ./bin/demo1kratos migrate new-script create --version-type TIME --description alter_schema --allow-empty-script true
+// ./bin/demo1kratos migrate new-script create --version-type TIME --description alter_column
 //
 // Update migration scripts:
 // 更新迁移脚本:
-// ./bin/demo1kratos migrate next-script update
+// ./bin/demo1kratos migrate new-script update
 //
 // Execute migrations:
 // 执行迁移:
@@ -57,50 +59,54 @@ func NewVersionCmd(serviceName, version string, logger log.Logger) *cobra.Comman
 // 预览迁移:
 // ./bin/demo1kratos migrate preview inc
 //
+// Check migration status:
+// 检查迁移状态:
+// ./bin/demo1kratos migrate status
+//
 // Note: Use caution with rollback operations to avoid unintended destructive actions
 // 注意: 回退操作要谨慎，避免误操作导致问题
 // ./bin/demo1kratos migrate migrate dec (use with caution)
 func NewMigrateCmd(logger log.Logger) *cobra.Command {
-	const scriptsInRoot = "./scripts"
-
-	// Lazy initialization: database connection created when command runs
-	// 延迟初始化：仅在命令运行时才创建数据库连接
-	getDB := func() *gorm.DB {
-		cfg := appcfg.ParseConfig(cfgpath.ConfigPath)
-		dsn := must.Nice(cfg.Data.Database.Source)
-		db := rese.P1(gorm.Open(sqlite.Open(dsn), &gorm.Config{}))
-		return db
-	}
-
-	// getMigration function accepts database connection to share single connection
-	// 迁移工厂接受数据库连接以共享单个连接
-	getMigration := func(db *gorm.DB) *migrate.Migrate {
-		sqlDB := rese.P1(db.DB())
-		migrationDriver := rese.V1(sqlite3migrate.WithInstance(sqlDB, &sqlite3migrate.Config{}))
-		return rese.P1(newmigrate.NewWithScriptsAndDatabase(
-			&newmigrate.ScriptsAndDatabaseParam{
-				ScriptsInRoot:    scriptsInRoot,
-				DatabaseName:     "sqlite3",
-				DatabaseInstance: migrationDriver,
-			},
-		))
-	}
-
 	var rootCmd = &cobra.Command{
 		Use:   "migrate",
 		Short: "migrate",
 		Long:  "migrate",
 	}
-	rootCmd.AddCommand(newscripts.NextScriptCmd(&newscripts.Config{
-		GetMigration: getMigration,
-		GetDB:        getDB,
-		Options:      newscripts.NewOptions(scriptsInRoot),
-		Objects: []any{
-			&models.Record{},
+
+	const scriptsInRoot = "./scripts"
+
+	migrationparam.SetDebugMode(true)
+	param := migrationparam.NewMigrationParam(
+		func() *gorm.DB {
+			cfg := appcfg.ParseConfig(cfgpath.ConfigPath)
+			dsn := must.Nice(cfg.Data.Database.Source)
+			db := rese.P1(gorm.Open(sqlite.Open(dsn), &gorm.Config{}))
+			return db
 		},
+		func(db *gorm.DB) *migrate.Migrate {
+			rawDB := rese.P1(db.DB())
+			migrationDriver := rese.V1(sqlite3migrate.WithInstance(rawDB, &sqlite3migrate.Config{}))
+			return rese.P1(newmigrate.NewWithScriptsAndDatabase(
+				&newmigrate.ScriptsAndDatabaseParam{
+					ScriptsInRoot:    scriptsInRoot,
+					DatabaseName:     "sqlite3",
+					DatabaseInstance: migrationDriver,
+				},
+			))
+		},
+	)
+	rootCmd.AddCommand(newscripts.NewScriptCmd(&newscripts.Config{
+		Param:   param,
+		Options: newscripts.NewOptions(scriptsInRoot),
+		Objects: models.Objects(),
 	}))
-	rootCmd.AddCommand(cobramigration.NewMigrateCmd(getDB, getMigration))
-	rootCmd.AddCommand(previewmigrate.NewPreviewCmd(getDB, getMigration, scriptsInRoot))
+	rootCmd.AddCommand(cobramigration.NewMigrateCmd(param))
+	rootCmd.AddCommand(previewmigrate.NewPreviewCmd(param, scriptsInRoot))
+	rootCmd.AddCommand(migrationstate.NewStatusCmd(&migrationstate.Config{
+		Param:       param,
+		ScriptsPath: scriptsInRoot,
+		Objects:     models.Objects(),
+	}))
 
 	return rootCmd
 }
