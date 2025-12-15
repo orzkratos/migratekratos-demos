@@ -111,10 +111,10 @@ Code differences compared to source project demokratos.
  
 ```
 
-## cmd/demo1kratos/subcmds/sub_cmds.go (+112 -0)
+## cmd/demo1kratos/subcmds/sub_cmds.go (+118 -0)
 
 ```diff
-@@ -0,0 +1,112 @@
+@@ -0,0 +1,118 @@
 +package subcmds
 +
 +import (
@@ -184,15 +184,21 @@ Code differences compared to source project demokratos.
 +// 注意: 回退操作要谨慎，避免误操作导致问题
 +// ./bin/demo1kratos migrate migrate dec (use with caution)
 +func NewMigrateCmd(logger log.Logger) *cobra.Command {
++	var debugMode bool
++
 +	var rootCmd = &cobra.Command{
 +		Use:   "migrate",
 +		Short: "migrate",
 +		Long:  "migrate",
++		Args:  cobra.NoArgs,
++		PersistentPreRun: func(cmd *cobra.Command, args []string) {
++			migrationparam.SetDebugMode(debugMode)
++		},
 +	}
++	rootCmd.PersistentFlags().BoolVar(&debugMode, "debug", false, "enable debug mode")
 +
 +	const scriptsInRoot = "./scripts"
 +
-+	migrationparam.SetDebugMode(true)
 +	param := migrationparam.NewMigrationParam(
 +		func() *gorm.DB {
 +			cfg := appcfg.ParseConfig(cfgpath.ConfigPath)

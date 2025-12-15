@@ -8,7 +8,7 @@ require (
 	github.com/stretchr/testify v1.11.1
 	github.com/yyle88/eroticgo v0.0.5
 	github.com/yyle88/must v0.0.29
-	github.com/yyle88/osexec v0.0.37
+	github.com/yyle88/osexec v0.0.38
 	github.com/yyle88/osexistpath v0.0.19
 	github.com/yyle88/printgo v1.0.6
 	github.com/yyle88/rese v0.0.12

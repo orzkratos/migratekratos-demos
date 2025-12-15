@@ -67,15 +67,21 @@ func NewVersionCmd(serviceName, version string, logger log.Logger) *cobra.Comman
 // 注意: 回退操作要谨慎，避免误操作导致问题
 // ./bin/demo2kratos migrate migrate dec (use with caution)
 func NewMigrateCmd(logger log.Logger) *cobra.Command {
+	var debugMode bool
+
 	var rootCmd = &cobra.Command{
 		Use:   "migrate",
 		Short: "migrate",
 		Long:  "migrate",
+		Args:  cobra.NoArgs,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			migrationparam.SetDebugMode(debugMode)
+		},
 	}
+	rootCmd.PersistentFlags().BoolVar(&debugMode, "debug", false, "enable debug mode")
 
 	const scriptsInRoot = "./scripts"
 
-	migrationparam.SetDebugMode(true)
 	param := migrationparam.NewMigrationParam(
 		func() *gorm.DB {
 			cfg := appcfg.ParseConfig(cfgpath.ConfigPath)
